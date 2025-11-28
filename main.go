@@ -1,10 +1,11 @@
 package main
 
 import (
-	"bufio"
+	"agent-sandbox/adapters"
 	"context"
+	"encoding/json"
 	"fmt"
-	"io"
+	"log"
 	"os"
 	"strings"
 
@@ -12,34 +13,9 @@ import (
 	"github.com/openai/openai-go/v3/option"
 )
 
-// Reads all data from stdin. Returns empty string if there's no piped input.
-func readStdin() (string, error) {
-	stat, err := os.Stdin.Stat()
-	if err != nil {
-		return "", err
-	}
-	// If input is from a pipe or file, ModeCharDevice will be false
-	if (stat.Mode() & os.ModeCharDevice) != 0 {
-		return "", nil
-	}
-	var b strings.Builder
-	r := bufio.NewReader(os.Stdin)
-	for {
-		chunk, err := r.ReadString('\n')
-		b.WriteString(chunk)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return "", err
-		}
-	}
-	return strings.TrimSpace(b.String()), nil
-}
-
 func main() {
 	// Read query from stdin
-	query, err := readStdin()
+	query, err := adapters.ReadStdin()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "failed to read stdin:", err)
 		os.Exit(1)
@@ -78,16 +54,86 @@ func main() {
 	// Use the Responses API to perform a basic text response to the user's prompt
 	params := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage("You are a helpful assistant."),
 			openai.UserMessage(query),
 		},
 		Model: model,
 		Seed:  openai.Int(0),
+		Tools: []openai.ChatCompletionToolUnionParam{
+			adapters.ReadFileTool,
+			adapters.WriteFileTool,
+		},
 	}
+
 	completion, err := client.Chat.Completions.New(ctx, params)
 	if err != nil {
 		panic(err)
 	}
 
+	toolCalls := completion.Choices[0].Message.ToolCalls
+
+	for _, toolCall := range toolCalls {
+		if toolCall.Function.Name == "read_file" {
+			log.Printf("reading file: ")
+			var args map[string]interface{}
+			err := json.Unmarshal([]byte(getToolCall(toolCall.Function.Arguments)), &args)
+
+			if err != nil {
+				log.Printf("error unmarshalling arguments: %v", err)
+				params.Messages = append(params.Messages, openai.ToolMessage(err.Error(), toolCall.ID))
+				continue
+			}
+			path := args["path"].(string)
+			log.Println(path)
+
+			fileContents, err := adapters.ReadFile(path)
+			if err != nil {
+				log.Printf("error opening file: %v", err)
+				params.Messages = append(params.Messages, openai.ToolMessage(err.Error(), toolCall.ID))
+				continue
+			}
+
+			params.Messages = append(params.Messages, openai.ToolMessage(fileContents, toolCall.ID))
+		} else if toolCall.Function.Name == "write_file" {
+			log.Printf("writing file: ")
+			var args map[string]interface{}
+			err := json.Unmarshal([]byte(getToolCall(toolCall.Function.Arguments)), &args)
+			if err != nil {
+				log.Printf("error unmarshalling arguments: %v", err)
+				params.Messages = append(params.Messages, openai.ToolMessage(err.Error(), toolCall.ID))
+				continue
+			}
+			path := args["path"].(string)
+			data := args["data"].(string)
+			log.Println(path)
+			err = adapters.WriteFile(path, data)
+			if err != nil {
+				log.Printf("error writing file: %v", err)
+				params.Messages = append(params.Messages, openai.ToolMessage(err.Error(), toolCall.ID))
+			}
+		} else {
+			message := "Unknown tool: " + toolCall.Function.Name
+			log.Printf(message)
+			params.Messages = append(params.Messages, openai.ToolMessage(message, toolCall.ID))
+		}
+
+		completion, err = client.Chat.Completions.New(ctx, params)
+		if err != nil {
+			panic(err)
+		}
+		toolCalls = completion.Choices[0].Message.ToolCalls
+	}
+
 	// Print the model's output to stdout
+	log.Printf("Got model output: %v", completion.Choices[0].Message.Content)
 	fmt.Print(completion.Choices[0].Message.Content)
+}
+
+// Is this a bug in localAI? Why is the tool call not being parsed correctly?
+func getToolCall(input string) string {
+	if input[0:2] == "{{" {
+		toolCallLength := len(input)
+		return input[1 : toolCallLength-1]
+	}
+	return input
 }
