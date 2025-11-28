@@ -126,6 +126,7 @@ func main() {
 
 	// Print the model's output to stdout
 	log.Println("Got model output:")
+	log.Println(completion.Choices[0].Message.Content)
 	fmt.Print(completion.Choices[0].Message.Content)
 }
 
