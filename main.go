@@ -106,6 +106,7 @@ func main() {
 			path := args["path"].(string)
 			data := args["data"].(string)
 			log.Println(path)
+			log.Println(data)
 			err = adapters.WriteFile(path, data)
 			if err != nil {
 				log.Printf("error writing file: %v", err)
