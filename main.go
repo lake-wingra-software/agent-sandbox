@@ -54,7 +54,7 @@ func main() {
 	// Use the Responses API to perform a basic text response to the user's prompt
 	params := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage("You are a helpful assistant."),
+			openai.SystemMessage(systemPrompt),
 			openai.UserMessage(query),
 		},
 		Model: model,
