@@ -2,13 +2,27 @@ package adapters
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 	"strings"
 )
 
+func ParseQuery() string {
+	query, err := readStdin()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "failed to read stdin:", err)
+		os.Exit(1)
+	}
+	if strings.TrimSpace(query) == "" {
+		fmt.Fprintln(os.Stderr, "no input provided on stdin; pipe a prompt, e.g.: echo 'Hello' | go run main.go")
+		os.Exit(2)
+	}
+	return query
+}
+
 // Reads all data from stdin. Returns empty string if there's no piped input.
-func ReadStdin() (string, error) {
+func readStdin() (string, error) {
 	stat, err := os.Stdin.Stat()
 	if err != nil {
 		return "", err

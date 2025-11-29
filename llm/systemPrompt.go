@@ -1,6 +1,6 @@
-package main
+package llm
 
-const systemPrompt = `### Workflow
+const SystemPrompt string = `### Workflow
 
 When faced with a prompt, follow these steps:
 

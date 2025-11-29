@@ -2,6 +2,7 @@ package main
 
 import (
 	"agent-sandbox/adapters"
+	"agent-sandbox/llm"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -14,16 +15,7 @@ import (
 )
 
 func main() {
-	// Read query from stdin
-	query, err := adapters.ReadStdin()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "failed to read stdin:", err)
-		os.Exit(1)
-	}
-	if strings.TrimSpace(query) == "" {
-		fmt.Fprintln(os.Stderr, "no input provided on stdin; pipe a prompt, e.g.: echo 'Hello' | go run main.go")
-		os.Exit(2)
-	}
+	query := adapters.ParseQuery()
 
 	// Load configuration from environment
 	apiKey := strings.TrimSpace(os.Getenv("OPENAI_API_KEY"))
@@ -54,7 +46,7 @@ func main() {
 	// Use the Responses API to perform a basic text response to the user's prompt
 	params := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(systemPrompt),
+			openai.SystemMessage(llm.SystemPrompt),
 			openai.UserMessage(query),
 		},
 		Model: model,
@@ -107,6 +99,7 @@ func main() {
 			data := args["data"].(string)
 			log.Println(path)
 			log.Println(data)
+
 			err = adapters.WriteFile(path, data)
 			if err != nil {
 				log.Printf("error writing file: %v", err)
