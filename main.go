@@ -54,7 +54,7 @@ func main() {
 	// Use the Responses API to perform a basic text response to the user's prompt
 	params := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage("You are a helpful assistant."),
+			openai.SystemMessage(systemPrompt),
 			openai.UserMessage(query),
 		},
 		Model: model,
@@ -125,7 +125,8 @@ func main() {
 	}
 
 	// Print the model's output to stdout
-	log.Printf("Got model output: %v", completion.Choices[0].Message.Content)
+	log.Println("Got model output:")
+	log.Println(completion.Choices[0].Message.Content)
 	fmt.Print(completion.Choices[0].Message.Content)
 }
 
