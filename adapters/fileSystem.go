@@ -8,6 +8,8 @@ import (
 )
 
 func ReadFile(path string) (string, error) {
+	log.Printf("reading file: ")
+	log.Println(path)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		log.Println(err)
@@ -35,6 +37,10 @@ var ReadFileTool = openai.ChatCompletionToolUnionParam{
 }
 
 func WriteFile(path string, data string) error {
+	log.Printf("writing file: ")
+	log.Println(path)
+	log.Println(data)
+
 	f, err := os.Create(path)
 	if err != nil {
 		log.Println(err)
