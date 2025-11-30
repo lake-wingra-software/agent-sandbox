@@ -11,18 +11,22 @@ import (
 	"github.com/openai/openai-go/v3"
 )
 
+func getCompletionOrPanic(client openai.Client, ctx context.Context, params *openai.ChatCompletionNewParams) *openai.ChatCompletion {
+	completion, err := client.Chat.Completions.New(ctx, *params)
+	if err != nil {
+		panic(err)
+	}
+	return completion
+}
+
 func main() {
 	query := adapters.ParseQuery()
 	client := llm.CreateClient()
 	ctx := context.Background()
 
-	params := llm.ToolUserParams()
-	llm.AppendMessage(params, openai.UserMessage(query))
+	params := classifyPromptAndCreateParams(query, client, ctx)
 
-	completion, err := client.Chat.Completions.New(ctx, *params)
-	if err != nil {
-		panic(err)
-	}
+	completion := getCompletionOrPanic(client, ctx, params)
 
 	toolCalls := completion.Choices[0].Message.ToolCalls
 
@@ -54,6 +58,7 @@ func main() {
 				llm.AppendMessage(params, openai.ToolMessage(err.Error(), toolCall.ID))
 				continue
 			}
+			log.Print(args)
 			path := args["path"].(string)
 			data := args["data"].(string)
 
@@ -68,10 +73,7 @@ func main() {
 			llm.AppendMessage(params, openai.ToolMessage(message, toolCall.ID))
 		}
 
-		completion, err = client.Chat.Completions.New(ctx, *params)
-		if err != nil {
-			panic(err)
-		}
+		completion = getCompletionOrPanic(client, ctx, params)
 		toolCalls = completion.Choices[0].Message.ToolCalls
 	}
 
@@ -79,6 +81,22 @@ func main() {
 	log.Println("Got model output:")
 	log.Println(completion.Choices[0].Message.Content)
 	fmt.Print(completion.Choices[0].Message.Content)
+}
+
+func classifyPromptAndCreateParams(query string, client openai.Client, ctx context.Context) *openai.ChatCompletionNewParams {
+	params := llm.TriageParams()
+	llm.AppendMessage(params, openai.UserMessage(query))
+
+	completion := getCompletionOrPanic(client, ctx, params)
+
+	log.Println(completion.Choices[0].Message.Content)
+	if completion.Choices[0].Message.Content == "chat" {
+		params = llm.ChatParams()
+	} else {
+		params = llm.ToolUserParams()
+	}
+	llm.AppendMessage(params, openai.UserMessage(query))
+	return params
 }
 
 // Is this a bug in localAI? Why is the tool call not being parsed correctly?

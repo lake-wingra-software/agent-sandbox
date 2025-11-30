@@ -12,20 +12,18 @@ import (
 func TriageParams() *openai.ChatCompletionNewParams {
 	return &openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage("Classify a prompt as either 'chat' or 'tool use' based on its content."),
+			openai.SystemMessage(ClassifierPrompt),
 		},
 		Model: getModel(),
 		Seed:  openai.Int(0),
-		Tools: []openai.ChatCompletionToolUnionParam{
-			// TODO
-		},
 	}
 }
 
 func ChatParams() *openai.ChatCompletionNewParams {
+
 	return &openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage("You are a helpful assistant."),
+			openai.SystemMessage(ChatPrompt),
 		},
 		Model: getModel(),
 		Seed:  openai.Int(0),
@@ -35,7 +33,7 @@ func ChatParams() *openai.ChatCompletionNewParams {
 func ToolUserParams() *openai.ChatCompletionNewParams {
 	return &openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(SystemPrompt),
+			openai.SystemMessage(ToolUserPrompt),
 		},
 		Model: getModel(),
 		Seed:  openai.Int(0),
