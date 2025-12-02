@@ -28,6 +28,15 @@ func main() {
 
 	completion := getCompletionOrPanic(client, ctx, params)
 
+	completion = handleToolCalls(completion, params, client, ctx)
+
+	// Print the model's output to stdout
+	log.Println("Got model output:")
+	log.Println(completion.Choices[0].Message.Content)
+	fmt.Print(completion.Choices[0].Message.Content)
+}
+
+func handleToolCalls(completion *openai.ChatCompletion, params *openai.ChatCompletionNewParams, client openai.Client, ctx context.Context) *openai.ChatCompletion {
 	toolCalls := completion.Choices[0].Message.ToolCalls
 
 	for _, toolCall := range toolCalls {
@@ -77,10 +86,7 @@ func main() {
 		toolCalls = completion.Choices[0].Message.ToolCalls
 	}
 
-	// Print the model's output to stdout
-	log.Println("Got model output:")
-	log.Println(completion.Choices[0].Message.Content)
-	fmt.Print(completion.Choices[0].Message.Content)
+	return completion
 }
 
 func classifyPromptAndCreateParams(query string, client openai.Client, ctx context.Context) *openai.ChatCompletionNewParams {
