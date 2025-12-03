@@ -20,11 +20,11 @@ func getCompletionOrPanic(client openai.Client, ctx context.Context, params *ope
 }
 
 func main() {
-	query := adapters.ParseQuery()
+	messages := adapters.ParseQuery()
 	client := llm.CreateClient()
 	ctx := context.Background()
 
-	params := classifyPromptAndCreateParams(query, client, ctx)
+	params := classifyPromptAndCreateParams(messages, client, ctx)
 
 	completion := getCompletionOrPanic(client, ctx, params)
 
@@ -89,19 +89,19 @@ func handleToolCalls(completion *openai.ChatCompletion, params *openai.ChatCompl
 	return completion
 }
 
-func classifyPromptAndCreateParams(query string, client openai.Client, ctx context.Context) *openai.ChatCompletionNewParams {
+func classifyPromptAndCreateParams(messages []openai.ChatCompletionMessageParamUnion, client openai.Client, ctx context.Context) *openai.ChatCompletionNewParams {
 	params := llm.TriageParams()
-	llm.AppendMessage(params, openai.UserMessage(query))
+	llm.AppendMessage(params, messages[len(messages)-1])
 
 	completion := getCompletionOrPanic(client, ctx, params)
 
-	log.Println(completion.Choices[0].Message.Content)
+	log.Println("Prompt type was: " + completion.Choices[0].Message.Content)
 	if completion.Choices[0].Message.Content == "chat" {
 		params = llm.ChatParams()
 	} else {
 		params = llm.ToolUserParams()
 	}
-	llm.AppendMessage(params, openai.UserMessage(query))
+	llm.AppendMessages(params, messages)
 	return params
 }
 

@@ -48,6 +48,12 @@ func AppendMessage(params *openai.ChatCompletionNewParams, message openai.ChatCo
 	params.Messages = append(params.Messages, message)
 }
 
+func AppendMessages(params *openai.ChatCompletionNewParams, messages []openai.ChatCompletionMessageParamUnion) {
+	for _, message := range messages {
+		params.Messages = append(params.Messages, message)
+	}
+}
+
 func getModel() string {
 	model := strings.TrimSpace(os.Getenv("OPENAI_MODEL"))
 	if model == "" {
