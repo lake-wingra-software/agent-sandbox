@@ -1,47 +1,49 @@
 package adapters
 
 import (
-	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
-	"strings"
+
+	"github.com/openai/openai-go/v3"
 )
 
-func ParseQuery() string {
-	query, err := readStdin()
+const aiAgentUsername = "perry-bot"
+
+type githubComment struct {
+	Body string `json:"body"`
+	User struct {
+		Login string `json:"login"`
+	} `json:"user"`
+}
+
+func ParseQuery() []openai.ChatCompletionMessageParamUnion {
+	content, err := io.ReadAll(os.Stdin)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "failed to read stdin:", err)
-		os.Exit(1)
+		log.Fatalf("error reading stdin: %v", err)
 	}
-	if strings.TrimSpace(query) == "" {
+	if len(content) == 0 {
 		fmt.Fprintln(os.Stderr, "no input provided on stdin; pipe a prompt, e.g.: echo 'Hello' | go run main.go")
 		os.Exit(2)
 	}
-	return query
-}
 
-// Reads all data from stdin. Returns empty string if there's no piped input.
-func readStdin() (string, error) {
-	stat, err := os.Stdin.Stat()
-	if err != nil {
-		return "", err
-	}
-	// If input is from a pipe or file, ModeCharDevice will be false
-	if (stat.Mode() & os.ModeCharDevice) != 0 {
-		return "", nil
-	}
-	var b strings.Builder
-	r := bufio.NewReader(os.Stdin)
-	for {
-		chunk, err := r.ReadString('\n')
-		b.WriteString(chunk)
-		if err == io.EOF {
-			break
+	var comments []githubComment
+	if err := json.Unmarshal(content, &comments); err == nil {
+		var messages []openai.ChatCompletionMessageParamUnion
+		for _, comment := range comments {
+			if comment.User.Login == aiAgentUsername {
+				messages = append(messages, openai.AssistantMessage(comment.Body))
+			} else {
+				messages = append(messages, openai.UserMessage(comment.Body))
+			}
 		}
-		if err != nil {
-			return "", err
+		return messages
+	} else {
+		log.Printf("error parsing JSON: %v. Parsing as string instead.", err)
+		return []openai.ChatCompletionMessageParamUnion{
+			openai.UserMessage(string(content)),
 		}
 	}
-	return strings.TrimSpace(b.String()), nil
 }
