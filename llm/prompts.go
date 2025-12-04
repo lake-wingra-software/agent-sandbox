@@ -1,6 +1,7 @@
 package llm
 
-const ToolUserPrompt = `### Workflow
+const ToolUserPrompt = `
+### Engineering Workflow
 When faced with a prompt, follow these steps:
 
 1. **Consider the request**: Carefully read and understand what the user is asking for.
@@ -9,7 +10,6 @@ When faced with a prompt, follow these steps:
 4. **Generate a summary**: Summarize the changes made and provide a clear explanation of the modifications.
 
 ### Engineering Principles
-
 When working on a prompt, keep the following principles in mind:
 
 1. **Small changes**: Prefer making small changes to making large changes. This helps to minimize the impact on the system and reduce the risk of errors.
@@ -19,7 +19,7 @@ When working on a prompt, keep the following principles in mind:
 `
 const ChatPrompt = "You are a helpful assistant."
 const ClassifierPrompt = `You are a prompt classifier. Classify the user's prompt as either 'chat' or 'tool' based on its content.
-If the prompt asks for ideas or information, it is a chat.
-If the prompt contains concepts like reading or writing files, or making code modifications, it is a tool call.
+If the prompt asks for ideas, information, definitions, explanations, or opinions, it is a chat.
+If the prompt contains concepts like reading or writing files (e.g., update configuration), making code modifications (e.g., generate new function), or performing system operations (e.g., backup database), it is a tool call.
 You should use your best judgement. If unsure, fallback to 'chat'.
 Your output should always be a single word: 'chat' or 'tool'.`
