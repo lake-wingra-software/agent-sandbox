@@ -8,4 +8,5 @@ This agent should be able to complete the following workflow:
 - The changes are pushed to the pull request branch. DONE
 
 NEXT:
-- The LLM has the (limited) full conversation history in context.
+- The LLM has the (limited) full conversation history in context. DONE
+- Improve system prompts
